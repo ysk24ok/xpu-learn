@@ -1,0 +1,7 @@
+setuptools
+wheel
+numpy
+keras
+tensorflow
+pytest
+flake8
