@@ -6,6 +6,7 @@ from .base import Layer
 class Activation(Layer):
 
     def __init__(self, activation):
+        super(Activation, self).__init__()
         if activation == 'linear':
             self.activation = LinearActivation()
         elif activation == 'sigmoid':

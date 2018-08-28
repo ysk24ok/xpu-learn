@@ -28,15 +28,14 @@ Y_test = np_utils.to_categorical(y_test, num_classes)
 print('X_train shape: {}'.format(X_train.shape))
 print('Y_train shape: {}'.format(Y_train.shape))
 
-model = Model(
-    loss='categorical_crossentropy', input_shape=(784,),
-    optimizer=optimizers.AdaDelta())
+model = Model(input_shape=(784,))
 model.add(Dense(64))
 model.add(Activation('relu'))
 model.add(Dense(64))
 model.add(Activation('relu'))
 model.add(Dense(num_classes))
 model.add(Activation('softmax'))
+model.compile(optimizer=optimizers.Adam(), loss='categorical_crossentropy')
 model.fit(X_train, Y_train, epochs=20, verbose=True)
 y_test_pred = np.argmax(model.predict(X_test), axis=1)
 print('Test accuracy: {:.2f} %'.format(

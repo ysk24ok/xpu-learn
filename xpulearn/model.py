@@ -2,20 +2,22 @@ import time
 
 import numpy as np
 
-from . import optimizers
 from .layers import Activation, Loss
 
 
 class Model(object):
 
-    def __init__(self, loss, input_shape, optimizer=optimizers.SGD()):
-        self.loss_layer = Loss(loss)
+    def __init__(self, input_shape):
         self.input_shape = input_shape
-        self.optimizer = optimizer
         self.layers = []
 
     def add(self, layer):
         self.layers.append(layer)
+
+    def compile(self, optimizer, loss):
+        self.optimizer = optimizer
+        self.loss_layer = Loss(loss, self.layers[-1])
+        self.init_params()
 
     def init_params(self):
         # TODO: need initializer
@@ -31,6 +33,8 @@ class Model(object):
 
     def predict(self, X):
         for layer in self.layers:
+            if layer.skip is True:
+                continue
             X = layer.forwardprop(X)
         return X
 
@@ -39,7 +43,6 @@ class Model(object):
         return self.loss_layer.forwardprop(Y_pred, Y)
 
     def fit(self, X, Y, epochs=10, batch_size=16, verbose=False):
-        self.init_params()
         num_samples = X.shape[0]
         num_epochs = 0
         elapsed_per_epoch = 0
@@ -74,11 +77,14 @@ class Model(object):
 
     def fit_on_minibatch(self, X, Y):
         # forwardprop
-        for layer in self.layers:
-            X = layer.forwardprop(X)
+        X = self.predict(X)
+        if self.layers[-1].skip is True:
+            self.layers[-1].forwardprop(X)
         # backprop
         dout = self.loss_layer.backprop(X, Y)
         for layer in reversed(self.layers):
+            if layer.skip is True:
+                continue
             dout = layer.backprop(dout)
             # activation layer has no params
             if isinstance(layer, Activation):

@@ -20,6 +20,7 @@ class Dense(Layer):
         Arguments:
             num_units (int): #units of this layer
         """
+        super(Dense, self).__init__()
         self.num_units = num_units
         self.params = {}
         self.grads = {}
