@@ -1,6 +1,4 @@
-import numpy as np
-
-from .. import Parameter
+from .. import xp, Parameter
 from .base import Layer
 
 
@@ -9,9 +7,9 @@ class Dense(Layer):
     """Fully connected layer
 
     Parameters:
-        W (numpy.ndarray):
+        W (numpy.ndarray or cupy.core.core.ndarray):
             2D array of shape [#units of this layer, #units of input-side layer]
-        b (numpy.ndarray):
+        b (numpy.ndarray or cupy.core.core.ndarray):
             2D array of shape [#units of this layer, #units of input-side layer]
     """
 
@@ -31,25 +29,25 @@ class Dense(Layer):
             w_id = '{}_W'.format(layer_id)
             weight_shape = (self.num_units, *prev_layer_shape)
             self.params['W'] = Parameter(
-                w_id, np.random.randn(*weight_shape).astype(dtype) / 10)
+                w_id, xp.random.randn(*weight_shape).astype(dtype) / 10)
             self.grads['W'] = Parameter(
-                w_id, np.zeros(weight_shape, dtype=dtype))
+                w_id, xp.zeros(weight_shape, dtype=dtype))
         # bias
         if 'b' not in self.params and 'b' not in self.grads:
             b_id = '{}_b'.format(layer_id)
             bias_shape = (self.num_units, 1)
             self.params['b'] = Parameter(
-                b_id, np.zeros(bias_shape, dtype=dtype))
+                b_id, xp.zeros(bias_shape, dtype=dtype))
             self.grads['b'] = Parameter(
-                b_id, np.zeros(bias_shape, dtype=dtype))
+                b_id, xp.zeros(bias_shape, dtype=dtype))
 
     def forwardprop(self, X_in):
         """
         Arguments:
-            X_in (numpy.ndarray):
+            X_in (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, #units of input-side layer]
         Returns:
-            (numpy.ndarray):
+            (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch_size, #units of this layer]
         """
         self.X_in = X_in
@@ -62,15 +60,15 @@ class Dense(Layer):
     def backprop(self, dout):
         """
         Arguments:
-            dout (numpy.ndarray):
+            dout (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, #units of this layer]
         Returns:
-            (numpy.ndarray):
+            (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, #units of input-side layer]
         """
         batch_size = self.X_in.shape[0]
         self.grads['W'].data[...] = dout.T @ self.X_in
         self.grads['W'].data /= batch_size
-        self.grads['b'].data[...] = np.sum(dout.T, axis=1, keepdims=True)
+        self.grads['b'].data[...] = xp.sum(dout.T, axis=1, keepdims=True)
         self.grads['b'].data /= batch_size
         return dout @ self.params['W'].data

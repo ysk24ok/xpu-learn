@@ -1,7 +1,6 @@
 import time
 
-import numpy as np
-
+from . import xp
 from .layers import Activation, Loss
 
 
@@ -69,8 +68,8 @@ class Model(object):
                     print('epoch: {0:>3}, loss: {1:.4f}'.format(
                         num_epochs, loss))
             stime = time.time()
-            indices = np.arange(num_samples)
-            np.random.shuffle(indices)
+            indices = xp.arange(num_samples)
+            xp.random.shuffle(indices)
             num_iters = 0
             while True:
                 p_idx = batch_size * num_iters

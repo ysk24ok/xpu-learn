@@ -1,7 +1,6 @@
-import numpy as np
-
 from .activation import SigmoidActivation, SoftmaxActivation
 from .base import Layer
+from .. import xp
 from ..functions import clip_before_log
 
 
@@ -49,26 +48,27 @@ class MeanSqueredError(LossLayer):
     def forwardprop(self, X, y):
         """
         Arguments:
-            X (numpy.ndarray):
+            X (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, 1]
-            y (numpy.ndarray):
+            y (numpy.ndarray or cupy.core.core.ndarray):
                 1D array of shape [batch size,]
         Returns:
-            (numpy.float64): loss
+            (float): loss
         """
         batch_size = X.shape[0]
         err = X.flatten() - y
-        return np.sum(err ** 2) / (2 * batch_size)
+        return xp.float(xp.sum(err ** 2) / (2 * batch_size))
 
     def backprop(self, X, y):
         """
         Arguments:
-            X (numpy.ndarray):
+            X (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, 1]
-            y (numpy.ndarray):
+            y (numpy.ndarray or cupy.core.core.ndarray):
                 1D array of shape [batch size,]
         Returns:
-            (2d array, [batch size, 1])
+            (numpy.ndarray or cupy.core.core.ndarray):
+                2D array of shape [batch size, 1]
         """
         batch_size = X.shape[0]
         return (X - y.reshape(batch_size, 1)) / batch_size
@@ -79,28 +79,29 @@ class BinaryCrossEntropy(LossLayer):
     def forwardprop(self, X, y):
         """
         Arguments:
-            X (numpy.ndarray):
+            X (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, 1]
-            y (numpy.ndarray):
+            y (numpy.ndarray or cupy.core.core.ndarray):
                 1D array of shape [batch size,]
         Returns:
-            (numpy.float64): loss
+            (float): loss
         """
         batch_size = X.shape[0]
         X_clipped = clip_before_log(X.flatten(), self.dtype)
-        loss_pos = y * np.log(X_clipped)
-        loss_neg = (1-y) * np.log(1-X_clipped)
-        return -np.sum(loss_pos + loss_neg) / batch_size
+        loss_pos = y * xp.log(X_clipped)
+        loss_neg = (1-y) * xp.log(1-X_clipped)
+        return xp.float(-xp.sum(loss_pos + loss_neg) / batch_size)
 
     def backprop(self, X, y):
         """
         Arguments:
-            X (numpy.ndarray):
+            X (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, 1]
-            y (numpy.ndarray):
+            y (numpy.ndarray or cupy.core.core.ndarray):
                 1D array of shape [batch size,]
         Returns:
-            (numpy.ndarray): 2D array of shape [batch size, 1]
+            (numpy.ndarray or cupy.core.core.ndarray):
+                2D array of shape [batch size, 1]
         """
         batch_size = X.shape[0]
         Y = y.reshape(batch_size, 1)
@@ -120,12 +121,12 @@ class BinaryCrossEntropyWithSigmoid(LossLayer):
     def forwardprop(self, X, y):
         """
         Arguments:
-            X (numpy.ndarray):
+            X (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, 1]
-            y (numpy.ndarray):
+            y (numpy.ndarray or cupy.core.core.ndarray):
                 1D array of shape [batch size,]
         Returns:
-            (numpy.float64): loss
+            (numpy.float32): loss
         """
         X = self.pre_activation.forwardprop(X)
         return self.loss.forwardprop(X, y)
@@ -133,12 +134,13 @@ class BinaryCrossEntropyWithSigmoid(LossLayer):
     def backprop(self, X, y):
         """
         Arguments:
-            X (numpy.ndarray):
+            X (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, 1]
-            y (numpy.ndarray):
+            y (numpy.ndarray or cupy.core.core.ndarray):
                 1D array of shape [batch size,]
         Returns:
-            (numpy.ndarray): 2D array of shape [batch size, 1]
+            (numpy.ndarray or cupy.core.core.ndarray):
+                2D array of shape [batch size, 1]
         """
         batch_size = X.shape[0]
         Y = y.reshape(batch_size, 1)
@@ -150,28 +152,28 @@ class CategoricalCrossEntropy(LossLayer):
     def forwardprop(self, X, Y):
         """
         Arguments:
-            X (numpy.ndarray):
+            X (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, number of labels])
-            Y (numpy.ndarray):
+            Y (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, number of labels])
         Returns:
-            (numpy.float64): loss
+            (float): loss
         """
         batch_size = X.shape[0]
         X_clipped = clip_before_log(X, self.dtype)
-        loss_pos = Y * np.log(X_clipped)
-        loss_neg = (1-Y) * np.log(1-X_clipped)
-        return -np.sum(loss_pos + loss_neg) / batch_size
+        loss_pos = Y * xp.log(X_clipped)
+        loss_neg = (1-Y) * xp.log(1-X_clipped)
+        return xp.float(-xp.sum(loss_pos + loss_neg) / batch_size)
 
     def backprop(self, X, Y):
         """
         Arguments:
-            X (numpy.ndarray):
+            X (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, number of labels])
-            Y (numpy.ndarray):
+            Y (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, number of labels])
         Returns:
-            (numpy.ndarray):
+            (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, number of labels])
         """
         batch_size = X.shape[0]
@@ -191,12 +193,12 @@ class CategoricalCrossEntropyWithSoftmax(LossLayer):
     def forwardprop(self, X, Y):
         """
         Arguments:
-            X (numpy.ndarray):
+            X (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, number of labels])
-            Y (numpy.ndarray):
+            Y (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, number of labels])
         Returns:
-            (numpy.float64): loss
+            (numpy.float32): loss
         """
         X = self.pre_activation.forwardprop(X)
         return self.loss.forwardprop(X, Y)
@@ -204,12 +206,12 @@ class CategoricalCrossEntropyWithSoftmax(LossLayer):
     def backprop(self, X, Y):
         """
         Arguments:
-            X (numpy.ndarray):
+            X (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, number of labels])
-            Y (numpy.ndarray):
+            Y (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, number of labels])
         Returns:
-            (numpy.ndarray):
+            (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of shape [batch size, number of labels])
         """
         batch_size = X.shape[0]

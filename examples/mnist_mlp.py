@@ -1,8 +1,8 @@
-import numpy as np
+import numpy
 from keras.datasets import mnist
 from keras.utils import np_utils
 
-from xpulearn import optimizers
+from xpulearn import optimizers, xp
 from xpulearn.layers import Activation, Dense
 from xpulearn.metrics import accuracy_score
 from xpulearn.model import Model
@@ -25,18 +25,21 @@ print(X_test.shape[0], 'test samples')
 Y_train = np_utils.to_categorical(y_train, num_classes)
 Y_test = np_utils.to_categorical(y_test, num_classes)
 
-print('X_train shape: {}'.format(X_train.shape))
-print('Y_train shape: {}'.format(Y_train.shape))
+# When using CuPy
+if xp != numpy:
+    X_train = xp.asarray(X_train)
+    Y_train = xp.asarray(Y_train)
+    X_test = xp.asarray(X_test)
+    Y_test = xp.asarray(Y_test)
 
 model = Model(input_shape=(784,))
-model.add(Dense(64))
+model.add(Dense(512))
 model.add(Activation('relu'))
-model.add(Dense(64))
+model.add(Dense(512))
 model.add(Activation('relu'))
 model.add(Dense(num_classes))
 model.add(Activation('softmax'))
 model.compile(optimizer=optimizers.Adam(), loss='categorical_crossentropy')
 model.fit(X_train, Y_train, epochs=20, verbose=True)
-y_test_pred = np.argmax(model.predict(X_test), axis=1)
 print('Test accuracy: {:.2f} %'.format(
-    accuracy_score(y_test, y_test_pred) * 100))
+    accuracy_score(Y_test, model.predict(X_test)) * 100))
