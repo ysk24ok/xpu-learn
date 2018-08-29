@@ -1,6 +1,7 @@
 import numpy as np
 
 from .base import Layer
+from ..functions import clip_before_exp
 
 
 class Activation(Layer):
@@ -62,10 +63,8 @@ class LinearActivation(BaseActivation):
 class SigmoidActivation(BaseActivation):
 
     def forwardprop(self, X_in):
-        # 1 / (1 + np.exp(-X))
-        # Avoid overflow encountered in exp
-        X_in = np.clip(X_in, -700, None)
-        self.X_out = 1 + np.exp(-X_in)
+        X_in = clip_before_exp(-X_in, self.dtype)
+        self.X_out = 1 + np.exp(X_in)
         self.X_out **= -1
         return self.X_out
 

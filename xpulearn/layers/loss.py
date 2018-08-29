@@ -1,10 +1,8 @@
 import numpy as np
 
-from .base import Layer
 from .activation import SigmoidActivation, SoftmaxActivation
-
-
-_eps = np.finfo(float).eps
+from .base import Layer
+from ..functions import clip_before_log
 
 
 class Loss(Layer):
@@ -89,7 +87,7 @@ class BinaryCrossEntropy(LossLayer):
             (numpy.float64): loss
         """
         batch_size = X.shape[0]
-        X_clipped = np.clip(X.flatten(), _eps, 1-_eps)
+        X_clipped = clip_before_log(X.flatten(), self.dtype)
         loss_pos = y * np.log(X_clipped)
         loss_neg = (1-y) * np.log(1-X_clipped)
         return -np.sum(loss_pos + loss_neg) / batch_size
@@ -160,7 +158,7 @@ class CategoricalCrossEntropy(LossLayer):
             (numpy.float64): loss
         """
         batch_size = X.shape[0]
-        X_clipped = np.clip(X, _eps, 1-_eps)
+        X_clipped = clip_before_log(X, self.dtype)
         loss_pos = Y * np.log(X_clipped)
         loss_neg = (1-Y) * np.log(1-X_clipped)
         return -np.sum(loss_pos + loss_neg) / batch_size

@@ -14,22 +14,33 @@ class Model(object):
     def add(self, layer):
         self.layers.append(layer)
 
-    def compile(self, optimizer, loss):
+    def compile(self, optimizer, loss, dtype='float32'):
+        if dtype not in ('float64', 'float32'):
+            raise ValueError("dtype must be either 'float64' or 'float32'")
         self.optimizer = optimizer
         self.loss_layer = Loss(loss, self.layers[-1])
-        self.init_params()
+        self.init_params(dtype)
+        self.set_dtype_to_layers(dtype)
 
-    def init_params(self):
+    def init_params(self, dtype):
         # TODO: need initializer
         prev_layer_shape = self.input_shape
         for layer_id, layer in enumerate(self.layers):
             # activation layer has no params
             if isinstance(layer, Activation):
                 continue
-            layer.init_params(layer_id, prev_layer_shape)
-            self.optimizer.init_params(layer.params)
+            layer.init_params(layer_id, prev_layer_shape, dtype)
+            self.optimizer.init_params(layer.params, dtype)
             # TODO: How about other layers ?
             prev_layer_shape = layer.params['W'].data.shape[:-1]
+
+    def set_dtype_to_layers(self, dtype):
+        for layer in self.layers:
+            if isinstance(layer, Activation):
+                layer.activation.dtype = dtype
+            else:
+                layer.dtype = dtype
+        self.loss_layer.loss.dtype = dtype
 
     def predict(self, X):
         for layer in self.layers:

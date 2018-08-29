@@ -8,20 +8,20 @@ import numpy as np
 class Optimizer(object):
 
     @abstractmethod
-    def init_param(self, param):
+    def init_param(self, param, dtype):
         """
         Arguments:
             param (xpulearn.Parameter)
         """
         pass
 
-    def init_params(self, params):
+    def init_params(self, params, dtype):
         """
         Arguments:
             params (dict[str, xpulearn.Parameter])
         """
         for param in params.values():
-            self.init_param(param)
+            self.init_param(param, dtype)
 
     @abstractmethod
     def update(self, param, grad):
@@ -48,7 +48,7 @@ class SGD(Optimizer):
     def __init__(self, lr=0.01):
         self.lr = lr
 
-    def init_param(self, param):
+    def init_param(self, param, dtype):
         pass
 
     def update(self, param, grad):
@@ -62,9 +62,10 @@ class MomentumSGD(Optimizer):
         self.momentum = momentum
         self.v = {}
 
-    def init_param(self, param):
+    def init_param(self, param, dtype):
         if param.id not in self.v:
-            self.v[param.id] = Parameter(param.id, np.zeros_like(param.data))
+            self.v[param.id] = Parameter(
+                param.id, np.zeros_like(param.data, dtype=dtype))
 
     def update(self, param, grad):
         self.v[param.id].data *= self.momentum
@@ -80,9 +81,10 @@ class RMSprop(Optimizer):
         self.eps = eps
         self.s = {}
 
-    def init_param(self, param):
+    def init_param(self, param, dtype):
         if param.id not in self.s:
-            self.s[param.id] = Parameter(param.id, np.zeros_like(param.data))
+            self.s[param.id] = Parameter(
+                param.id, np.zeros_like(param.data, dtype=dtype))
 
     def update(self, param, grad):
         self.s[param.id].data *= self.alpha
@@ -98,9 +100,10 @@ class AdaGrad(Optimizer):
         self.eps = eps
         self.v = {}
 
-    def init_param(self, param):
+    def init_param(self, param, dtype):
         if param.id not in self.v:
-            self.v[param.id] = Parameter(param.id, np.zeros_like(param.data))
+            self.v[param.id] = Parameter(
+                param.id, np.zeros_like(param.data, dtype=dtype))
 
     def update(self, param, grad):
         self.v[param.id].data += np.square(grad.data)
@@ -116,11 +119,13 @@ class AdaDelta(Optimizer):
         self.v = {}
         self.s = {}
 
-    def init_param(self, param):
+    def init_param(self, param, dtype):
         if param.id not in self.v:
-            self.v[param.id] = Parameter(param.id, np.zeros_like(param.data))
+            self.v[param.id] = Parameter(
+                param.id, np.zeros_like(param.data, dtype=dtype))
         if param.id not in self.s:
-            self.s[param.id] = Parameter(param.id, np.zeros_like(param.data))
+            self.s[param.id] = Parameter(
+                param.id, np.zeros_like(param.data, dtype=dtype))
 
     def update(self, param, grad):
         self.v[param.id].data *= self.rho
@@ -143,11 +148,13 @@ class Adam(Optimizer):
         self.m = {}
         self.v = {}
 
-    def init_param(self, param):
+    def init_param(self, param, dtype):
         if param.id not in self.m:
-            self.m[param.id] = Parameter(param.id, np.zeros_like(param.data))
+            self.m[param.id] = Parameter(
+                param.id, np.zeros_like(param.data, dtype=dtype))
         if param.id not in self.v:
-            self.v[param.id] = Parameter(param.id, np.zeros_like(param.data))
+            self.v[param.id] = Parameter(
+                param.id, np.zeros_like(param.data, dtype=dtype))
 
     def update(self, param, grad):
         self.m[param.id].data *= self.beta1

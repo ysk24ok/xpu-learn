@@ -25,20 +25,23 @@ class Dense(Layer):
         self.params = {}
         self.grads = {}
 
-    def init_params(self, layer_id, prev_layer_shape):
+    def init_params(self, layer_id, prev_layer_shape, dtype):
         # weight
         if 'W' not in self.params and 'W' not in self.grads:
             w_id = '{}_W'.format(layer_id)
             weight_shape = (self.num_units, *prev_layer_shape)
             self.params['W'] = Parameter(
-                w_id, np.random.randn(*weight_shape) / 10)
-            self.grads['W'] = Parameter(w_id, np.zeros(weight_shape))
+                w_id, np.random.randn(*weight_shape).astype(dtype) / 10)
+            self.grads['W'] = Parameter(
+                w_id, np.zeros(weight_shape, dtype=dtype))
         # bias
         if 'b' not in self.params and 'b' not in self.grads:
             b_id = '{}_b'.format(layer_id)
             bias_shape = (self.num_units, 1)
-            self.params['b'] = Parameter(b_id, np.zeros(bias_shape))
-            self.grads['b'] = Parameter(b_id, np.zeros(bias_shape))
+            self.params['b'] = Parameter(
+                b_id, np.zeros(bias_shape, dtype=dtype))
+            self.grads['b'] = Parameter(
+                b_id, np.zeros(bias_shape, dtype=dtype))
 
     def forwardprop(self, X_in):
         """
