@@ -1,7 +1,7 @@
 import time
 
 from . import xp
-from .layers import Activation, Loss
+from .layers import Activation, Dropout, Loss
 
 
 class Model(object):
@@ -25,8 +25,8 @@ class Model(object):
         # TODO: need initializer
         prev_layer_shape = self.input_shape
         for layer_id, layer in enumerate(self.layers):
-            # activation layer has no params
-            if isinstance(layer, Activation):
+            # activation and dropout layer has no params
+            if isinstance(layer, Activation) or isinstance(layer, Dropout):
                 continue
             layer.init_params(layer_id, prev_layer_shape, dtype)
             self.optimizer.init_params(layer.params, dtype)
@@ -41,9 +41,12 @@ class Model(object):
                 layer.dtype = dtype
         self.loss_layer.loss.dtype = dtype
 
-    def predict(self, X):
+    def predict(self, X, training=False):
         for layer in self.layers:
             if layer.skip is True:
+                continue
+            if isinstance(layer, Dropout):
+                X = layer.forwardprop(X, training=training)
                 continue
             X = layer.forwardprop(X)
         return X
@@ -87,7 +90,7 @@ class Model(object):
 
     def fit_on_minibatch(self, X, Y):
         # forwardprop
-        X = self.predict(X)
+        X = self.predict(X, training=True)
         if self.layers[-1].skip is True:
             self.layers[-1].forwardprop(X)
         # backprop
@@ -96,7 +99,7 @@ class Model(object):
             if layer.skip is True:
                 continue
             dout = layer.backprop(dout)
-            # activation layer has no params
-            if isinstance(layer, Activation):
+            # activation and dropout layer has no params
+            if isinstance(layer, Activation) or isinstance(layer, Dropout):
                 continue
             self.optimizer.update_params(layer.params, layer.grads)

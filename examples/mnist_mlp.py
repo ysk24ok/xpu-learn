@@ -3,7 +3,7 @@ from keras.datasets import mnist
 from keras.utils import np_utils
 
 from xpulearn import optimizers, xp
-from xpulearn.layers import Activation, Dense
+from xpulearn.layers import Activation, Dense, Dropout
 from xpulearn.metrics import accuracy_score
 from xpulearn.model import Model
 
@@ -35,8 +35,10 @@ if xp != numpy:
 model = Model(input_shape=(784,))
 model.add(Dense(512))
 model.add(Activation('relu'))
+model.add(Dropout(0.2))
 model.add(Dense(512))
 model.add(Activation('relu'))
+model.add(Dropout(0.2))
 model.add(Dense(num_classes))
 model.add(Activation('softmax'))
 model.compile(optimizer=optimizers.Adam(), loss='categorical_crossentropy')
