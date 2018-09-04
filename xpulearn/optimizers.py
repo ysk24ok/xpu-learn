@@ -22,7 +22,7 @@ class Optimizer(object):
             self.init_param(param, dtype)
 
     @abstractmethod
-    def update(self, param, grad):
+    def update_param(self, param, grad):
         """
         Arguments:
             param (xpulearn.Parameter)
@@ -38,7 +38,7 @@ class Optimizer(object):
         """
         for k, param in params.items():
             grad = grads[k]
-            self.update(param, grad)
+            self.update_param(param, grad)
 
 
 class SGD(Optimizer):
@@ -49,7 +49,7 @@ class SGD(Optimizer):
     def init_param(self, param, dtype):
         pass
 
-    def update(self, param, grad):
+    def update_param(self, param, grad):
         param.data -= self.lr * grad.data
 
 
@@ -65,10 +65,10 @@ class MomentumSGD(Optimizer):
             self.v[param.id] = Parameter(
                 param.id, xp.zeros_like(param.data, dtype=dtype))
 
-    def update(self, param, grad):
-        self.v[param.id].data *= self.momentum
-        self.v[param.id].data += (1 - self.momentum) * grad.data
-        param.data -= self.lr * self.v[param.id].data
+    def update_param(self, param, grad):
+        v = self.v[param.id]
+        v.data += (1 - self.momentum) * (grad.data - v.data)
+        param.data -= self.lr * v.data
 
 
 class RMSprop(Optimizer):
@@ -84,10 +84,10 @@ class RMSprop(Optimizer):
             self.s[param.id] = Parameter(
                 param.id, xp.zeros_like(param.data, dtype=dtype))
 
-    def update(self, param, grad):
-        self.s[param.id].data *= self.alpha
-        self.s[param.id].data += (1 - self.alpha) * xp.square(grad.data)
-        grad.data *= (xp.sqrt(self.s[param.id].data) + self.eps) ** -1
+    def update_param(self, param, grad):
+        s = self.s[param.id]
+        s.data += (1 - self.alpha) * (xp.square(grad.data) - s.data)
+        grad.data *= (xp.sqrt(s.data) + self.eps) ** -1
         param.data -= self.lr * grad.data
 
 
@@ -103,9 +103,10 @@ class AdaGrad(Optimizer):
             self.v[param.id] = Parameter(
                 param.id, xp.zeros_like(param.data, dtype=dtype))
 
-    def update(self, param, grad):
-        self.v[param.id].data += xp.square(grad.data)
-        grad.data *= (xp.sqrt(self.v[param.id].data) + self.eps) ** -1
+    def update_param(self, param, grad):
+        v = self.v[param.id]
+        v.data += xp.square(grad.data)
+        grad.data *= (xp.sqrt(v.data) + self.eps) ** -1
         param.data -= self.lr * grad.data
 
 
@@ -125,13 +126,13 @@ class AdaDelta(Optimizer):
             self.s[param.id] = Parameter(
                 param.id, xp.zeros_like(param.data, dtype=dtype))
 
-    def update(self, param, grad):
-        self.v[param.id].data *= self.rho
-        self.v[param.id].data += (1 - self.rho) * xp.square(grad.data)
-        grad.data *= xp.sqrt(self.s[param.id].data + self.eps)
-        grad.data *= xp.sqrt(self.v[param.id].data + self.eps) ** -1
-        self.s[param.id].data *= self.rho
-        self.s[param.id].data += (1 - self.rho) * xp.square(grad.data)
+    def update_param(self, param, grad):
+        v = self.v[param.id]
+        s = self.s[param.id]
+        v.data += (1 - self.rho) * (xp.square(grad.data) - v.data)
+        grad.data *= xp.sqrt(s.data + self.eps)
+        grad.data *= xp.sqrt(v.data + self.eps) ** -1
+        s.data += (1 - self.rho) * (xp.square(grad.data) - s.data)
         param.data -= grad.data
 
 
@@ -154,12 +155,12 @@ class Adam(Optimizer):
             self.v[param.id] = Parameter(
                 param.id, xp.zeros_like(param.data, dtype=dtype))
 
-    def update(self, param, grad):
-        self.m[param.id].data *= self.beta1
-        self.m[param.id].data += (1 - self.beta1) * grad.data
-        self.v[param.id].data *= self.beta2
-        self.v[param.id].data += (1 - self.beta2) * xp.square(grad.data)
-        m_corr = self.m[param.id].data * ((1 - self.beta1 ** self.t) ** -1)
-        v_corr = self.v[param.id].data * ((1 - self.beta2 ** self.t) ** -1)
+    def update_param(self, param, grad):
+        m = self.m[param.id]
+        v = self.v[param.id]
+        m.data += (1 - self.beta1) * (grad.data - m.data)
+        v.data += (1 - self.beta2) * (xp.square(grad.data) - v.data)
+        m_hat = m.data / (1 - self.beta1 ** self.t)
+        v_hat = v.data / (1 - self.beta2 ** self.t)
         self.t += 1
-        param.data -= self.alpha * m_corr * ((xp.sqrt(v_corr)+self.eps) ** -1)
+        param.data -= self.alpha * m_hat * ((xp.sqrt(v_hat) + self.eps) ** -1)
