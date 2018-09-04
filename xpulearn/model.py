@@ -55,7 +55,7 @@ class Model(object):
         Y_pred = self.predict(X)
         return self.loss_layer.forwardprop(Y_pred, Y)
 
-    def fit(self, X, Y, epochs=10, batch_size=16, verbose=False):
+    def fit(self, X, Y, epochs=10, batch_size=16, verbose=False, shuffle=True):
         num_samples = X.shape[0]
         num_epochs = 0
         elapsed_per_epoch = 0
@@ -72,7 +72,8 @@ class Model(object):
                         num_epochs, loss))
             stime = time.time()
             indices = xp.arange(num_samples)
-            xp.random.shuffle(indices)
+            if shuffle is True:
+                xp.random.shuffle(indices)
             num_iters = 0
             while True:
                 p_idx = batch_size * num_iters
