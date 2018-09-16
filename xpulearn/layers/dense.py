@@ -1,6 +1,7 @@
 from .. import xp, Parameter
 from ..initializers import Initializer
 from .base import Layer
+from . import Activation
 
 
 class Dense(Layer):
@@ -16,8 +17,8 @@ class Dense(Layer):
     """
 
     def __init__(
-            self, num_units, weight_initializer='he',
-            bias_initializer='zeros'):
+            self, num_units, activation='linear',
+            weight_initializer='he', bias_initializer='zeros'):
         """
         Arguments:
             num_units (int): #units of this layer
@@ -25,6 +26,7 @@ class Dense(Layer):
             bias_initializer: initializer type for b
         """
         super(Dense, self).__init__()
+        self.activation = Activation(activation)
         self.num_units = num_units
         self.weight_initializer = weight_initializer
         self.bias_initializer = bias_initializer
@@ -63,7 +65,7 @@ class Dense(Layer):
         b = self.params['b'].data
         X_out = X_in @ W.T
         X_out += b.T
-        return X_out
+        return self.activation.forwardprop(X_out)
 
     def backprop(self, dout):
         """
@@ -75,6 +77,7 @@ class Dense(Layer):
                 2D array of shape [batch size, #units of input-side layer]
         """
         batch_size = self.X_in.shape[0]
+        dout = self.activation.backprop(dout)
         self.grads['W'].data[...] = dout.T @ self.X_in
         self.grads['W'].data /= batch_size
         self.grads['b'].data[...] = xp.sum(dout.T, axis=1, keepdims=True)
