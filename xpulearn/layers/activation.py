@@ -42,6 +42,8 @@ class Activation(Layer):
             (numpy.ndarray or cupy.core.core.ndarray):
                 2D array of the same shape as `dout`
         """
+        if isinstance(self.activation, LinearActivation):
+            return dout
         return dout * self.activation.backprop(self.X_in)
 
 

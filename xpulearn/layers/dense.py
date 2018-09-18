@@ -33,14 +33,14 @@ class Dense(Layer):
         self.params = {}
         self.grads = {}
 
-    def init_params(self, layer_id, prev_layer_shape, dtype):
+    def init_params(self, layer_id, input_dim, dtype):
         weight_initializer = Initializer(self.weight_initializer, dtype)
         bias_initializer = Initializer(self.bias_initializer, dtype)
         zeros_initializer = Initializer('zeros', dtype)
         # weight
         if 'W' not in self.params and 'W' not in self.grads:
             w_id = '{}_W'.format(layer_id)
-            weight_shape = (self.num_units, *prev_layer_shape)
+            weight_shape = (self.num_units, input_dim)
             self.params['W'] = Parameter(
                 w_id, weight_initializer(weight_shape))
             self.grads['W'] = Parameter(w_id, zeros_initializer(weight_shape))

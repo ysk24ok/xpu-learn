@@ -6,8 +6,8 @@ from .layers import Activation, Dropout, Loss
 
 class Model(object):
 
-    def __init__(self, input_shape):
-        self.input_shape = input_shape
+    def __init__(self, input_dim):
+        self.input_dim = input_dim
         self.layers = []
 
     def add(self, layer):
@@ -23,15 +23,14 @@ class Model(object):
 
     def init_params(self, dtype):
         # TODO: need initializer
-        prev_layer_shape = self.input_shape
+        input_dim = self.input_dim
         for layer_id, layer in enumerate(self.layers):
             # activation and dropout layer has no params
             if isinstance(layer, Activation) or isinstance(layer, Dropout):
                 continue
-            layer.init_params(layer_id, prev_layer_shape, dtype)
+            layer.init_params(layer_id, input_dim, dtype)
             self.optimizer.init_params(layer.params, dtype)
-            # TODO: How about other layers ?
-            prev_layer_shape = layer.params['W'].data.shape[:-1]
+            input_dim = layer.num_units
 
     def set_dtype_to_layers(self, dtype):
         for layer in self.layers:

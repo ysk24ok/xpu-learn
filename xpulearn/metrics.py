@@ -4,10 +4,13 @@ from . import xp
 def accuracy_score(Y_true, Y_pred):
     """
     Arguments:
-        y_true (numpy.ndarray or cupy.core.core.ndarray): 2D array
-        y_pred (numpy.ndarray or cupy.core.core.ndarray): 2D array
+        Y_true (2D or 1D array): True labels
+        Y_pred (2D array): Predicted labels
     Returns:
-        score (numpy.float32)
+        score (xp.float32)
     """
-    T = xp.argmax(Y_true, axis=1) == xp.argmax(Y_pred, axis=1)
+    if len(Y_true.shape) == 2:
+        T = xp.argmax(Y_true, axis=1) == xp.argmax(Y_pred, axis=1)
+    else:
+        T = Y_true == (Y_pred.flatten() >= 0.5)
     return xp.float(xp.sum(T) / Y_true.shape[0])
