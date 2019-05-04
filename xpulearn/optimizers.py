@@ -160,7 +160,9 @@ class Adam(Optimizer):
         v = self.v[param.id]
         m.data += (1 - self.beta1) * (grad.data - m.data)
         v.data += (1 - self.beta2) * (xp.square(grad.data) - v.data)
-        m_hat = m.data / (1 - self.beta1 ** self.t)
-        v_hat = v.data / (1 - self.beta2 ** self.t)
+        bias_corr1 = 1 - self.beta1 ** self.t
+        m_hat = m.data / bias_corr1 if bias_corr1 > 1e-5 else m.data
+        bias_corr2 = 1 - self.beta2 ** self.t
+        v_hat = v.data / bias_corr2 if bias_corr2 > 1e-5 else v.data
         self.t += 1
         param.data -= self.alpha * m_hat * ((xp.sqrt(v_hat) + self.eps) ** -1)

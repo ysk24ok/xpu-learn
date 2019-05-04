@@ -1,13 +1,20 @@
 from . import Activation, Dense
-from .base import Layer
+from .base import Layer, Concat, Multiply
 
 from .. import xp
 
 
 class RNNCell(object):
 
-    def __init__(self, layers):
-        self.layers = layers
+    def __init__(self, activation, layers):
+        self.activation = Activation(activation)
+        self.layers = {}
+        # Wh
+        self.layers['Wh'] = Dense(layers['Wh'].num_units)
+        self.layers['Wh'].params = layers['Wh'].params
+        # Wx
+        self.layers['Wx'] = Dense(layers['Wx'].num_units)
+        self.layers['Wx'].params = layers['Wx'].params
 
     def forwardprop(self, X, H):
         """
@@ -20,7 +27,7 @@ class RNNCell(object):
         """
         H_out = self.layers['Wh'].forwardprop(H)
         X_out = self.layers['Wx'].forwardprop(X)
-        H_out = self.layers['A'].forwardprop(H_out + X_out)
+        H_out = self.activation.forwardprop(H_out + X_out)
         X_out = H_out
         return X_out, H_out
 
@@ -33,7 +40,7 @@ class RNNCell(object):
             dX_out (2D array): shape [batch size, #units of input-side layer]
             dH_out (2D array): shape [batch size, #units of this layer]
         """
-        dX = self.layers['A'].backprop(dX + dH)
+        dX = self.activation.backprop(dX + dH)
         dH_out = self.layers['Wh'].backprop(dX)
         dX_out = self.layers['Wx'].backprop(dX)
         return dX_out, dH_out
@@ -66,6 +73,7 @@ class RNN(Layer):
             return_sequences=False):
         super(RNN, self).__init__()
         self.num_units = num_units
+        self.activation = activation
         self.input_dim = None
         self.timesteps = None
         self.return_sequences = return_sequences
@@ -76,8 +84,7 @@ class RNN(Layer):
                         bias_initializer=recurrent_bias_initializer),
             'Wx': Dense(self.num_units,
                         weight_initializer=weight_initializer,
-                        bias_initializer=bias_initializer),
-            'A': Activation(activation)
+                        bias_initializer=bias_initializer)
         }
         self.params = {}
         self.grads = {}
@@ -118,7 +125,7 @@ class RNN(Layer):
             (batch_size, self.timesteps, self.num_units), dtype=self.dtype)
         self.cells = []
         for t in range(self.timesteps):
-            cell = RNNCell(self.layers)
+            cell = RNNCell(self.activation, self.layers)
             self.cells.append(cell)
             X_out[:, t, :], H = cell.forwardprop(X[:, t, :], H)
         if self.return_sequences is True:
@@ -158,3 +165,83 @@ class RNN(Layer):
             self.grads['Wx'].data += self.layers['Wx'].grads['W'].data
             self.grads['bx'].data += self.layers['Wx'].grads['b'].data
         return dX_out
+
+
+class LSTMCell(object):
+
+    def __init__(self, layers):
+        self.layers = layers
+        self.internal_layers = {
+            'Mfc'
+        }
+
+    def forwardprop(self, X, H, A):
+        """
+        Arguments:
+            X (2D array): shape [batch size, #units of input-side layer]
+            H (2D array): shape [batch size, #units of this layer]
+            A (2D array): shape [batch size, #units of this layer]
+        Returns:
+            X_out (2D array): shape [batch size, #units of this layer]
+            H_out (2D array): shape [batch size, #units of this layer]
+            A_out (2D array): shape [batch size, #units of this layer]
+        """
+        X = xp.concatenate((A, X), axis=1)
+        F_out = self.layers['Wf'].forwardprop(X)
+        U_out = self.layers['Wu'].forwardprop(X)
+        C_out = self.layers['Wc'].forwardprop(X)
+        O_out = self.layers['Wo'].forwardprop(X)
+        Multiply
+        H_out = F_out * H + U_out * C_out
+        A_out = self.layer['A'].forwardprop(H_out) * O_out
+        X_out = A_out
+        return X_out, H_out, A_out
+
+    def backprop(self, dX, dH, dA):
+        """
+        Arguments:
+            dX (2D array): shape [batch size, #units of this layer]
+            dH (2D array): shape [batch size, #units of this layer]
+        Returns:
+            dX_out (2D array): shape [batch size, #units of input-side layer]
+            dH_out (2D array): shape [batch size, #units of this layer]
+        """
+        dA = self.layers['A'].backprop(dX + dH)
+        dH_out = self.layers['Wh'].backprop(dX)
+        dX_out = self.layers['Wx'].backprop(dX)
+        return dX_out, dH_out
+
+
+class LSTM(Layer):
+
+    def __init__(
+            self, num_units, activation='tanh',
+            weight_initializer='he', bias_initializer='zeros',
+            recurrent_activation='sigmoid',
+            recurrent_weight_initializer='he',
+            recurrent_bias_initializer='zeros',
+            return_sequences=False):
+        self.num_units = num_units
+        self.layers = {
+            'Wf': Dense(self.num_units,
+                        activation=recurrent_activation,
+                        weight_initializer=recurrent_weight_initializer,
+                        bias_initializer=recurrent_bias_initializer),
+            'Wu': Dense(self.num_units,
+                        activation=recurrent_activation,
+                        weight_initializer=recurrent_weight_initializer,
+                        bias_initializer=recurrent_bias_initializer),
+            'Wc': Dense(self.num_units,
+                        activation=recurrent_activation,
+                        weight_initializer=recurrent_weight_initializer,
+                        bias_initializer=recurrent_bias_initializer),
+            'Wo': Dense(self.num_units,
+                        activation=recurrent_activation,
+                        weight_initializer=recurrent_weight_initializer,
+                        bias_initializer=recurrent_bias_initializer),
+            'Wu': Dense(self.num_units,
+                        activation=recurrent_activation,
+                        weight_initializer=weight_initializer,
+                        bias_initializer=bias_initializer),
+            'A': Activation(activation)
+        }

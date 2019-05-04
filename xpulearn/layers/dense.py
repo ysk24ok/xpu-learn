@@ -1,19 +1,16 @@
-from .. import xp, Parameter
-from ..initializers import Initializer
 from .base import Layer
 from . import Activation
+from .. import xp, Parameter
+from ..initializers import Initializer
 
 
 class Dense(Layer):
 
     """Fully connected layer
 
-    Parameters:
-        W (numpy.ndarray or cupy.core.core.ndarray):
-            2D array of shape
-            [#units of this layer, #units of input-side layer]
-        b (numpy.ndarray or cupy.core.core.ndarray):
-            2D array of shape [#units of this layer, 1]
+    NN Parameters:
+        W (2D array): shape [#units of this layer, #units of input-side layer]
+        b (2D array): shape [#units of this layer, 1]
     """
 
     def __init__(
@@ -22,14 +19,16 @@ class Dense(Layer):
         """
         Arguments:
             num_units (int): #units of this layer
+            activation (str): activation
             weight_initializer: initializer type for W
             bias_initializer: initializer type for b
         """
         super(Dense, self).__init__()
-        self.activation = Activation(activation)
         self.num_units = num_units
+        self.activation = Activation(activation)
         self.weight_initializer = weight_initializer
         self.bias_initializer = bias_initializer
+        self.cache = {'X': None}
         self.params = {}
         self.grads = {}
 
@@ -51,35 +50,31 @@ class Dense(Layer):
             self.params['b'] = Parameter(b_id, bias_initializer(bias_shape))
             self.grads['b'] = Parameter(b_id, zeros_initializer(bias_shape))
 
-    def forwardprop(self, X_in):
+    def forwardprop(self, X):
         """
         Arguments:
-            X_in (numpy.ndarray or cupy.core.core.ndarray):
-                2D array of shape [batch size, #units of input-side layer]
+            X (2D array): shape [batch size, #units of input-side layer]
         Returns:
-            (numpy.ndarray or cupy.core.core.ndarray):
-                2D array of shape [batch_size, #units of this layer]
+            (2D array): shape [batch_size, #units of this layer]
         """
-        self.X_in = X_in
+        self.cache['X'] = X
         W = self.params['W'].data
         b = self.params['b'].data
-        X_out = X_in @ W.T
+        X_out = X @ W.T
         X_out += b.T
         return self.activation.forwardprop(X_out)
 
-    def backprop(self, dout):
+    def backprop(self, dX):
         """
         Arguments:
-            dout (numpy.ndarray or cupy.core.core.ndarray):
-                2D array of shape [batch size, #units of this layer]
+            dX (2D array): shape [batch size, #units of this layer]
         Returns:
-            (numpy.ndarray or cupy.core.core.ndarray):
-                2D array of shape [batch size, #units of input-side layer]
+            (2D array): shape [batch size, #units of input-side layer]
         """
-        batch_size = self.X_in.shape[0]
-        dout = self.activation.backprop(dout)
-        self.grads['W'].data[...] = dout.T @ self.X_in
+        batch_size = dX.shape[0]
+        dX = self.activation.backprop(dX)
+        self.grads['W'].data[...] = dX.T @ self.cache['X']
         self.grads['W'].data /= batch_size
-        self.grads['b'].data[...] = xp.sum(dout.T, axis=1, keepdims=True)
+        self.grads['b'].data[...] = xp.sum(dX.T, axis=1, keepdims=True)
         self.grads['b'].data /= batch_size
-        return dout @ self.params['W'].data
+        return dX @ self.params['W'].data

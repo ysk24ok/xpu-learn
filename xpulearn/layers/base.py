@@ -18,6 +18,30 @@ class Layer(object):
         pass
 
 
+class Concat(Layer):
+
+    def forwardprop(self, X1, X2):
+        return X1 + X2
+
+    def backprop(self, dX):
+        return dX, dX
+
+
+class Multiply(Layer):
+
+    def __init__(self):
+        super(Multiply, self).__init__()
+        self.cache = {'X1': None, 'X2': None}
+
+    def forwardprop(self, X1, X2):
+        self.cache['X1'] = X1
+        self.cache['X2'] = X2
+        return X1 * X2
+
+    def backprop(self, dX):
+        return self.cache['X2'], self.cache['X1']
+
+
 class Dropout(Layer):
 
     """Dropout layer
